@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PackageX, ChevronLeft, ChevronRight } from 'lucide-react';
 import Product from './Product';
 import type { ProductData } from './AllProductsPage';
@@ -15,22 +15,18 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  // Clamp the page inline during render instead of correcting it in an effect,
+  // which avoids cascading setState calls flagged by React's strict mode.
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
   const paginatedProducts = products.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Reset to page 1 if products list changes and we are out of bounds
-  React.useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(1);
-    }
-  }, [products.length, currentPage, totalPages]);
-
   const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(p => p - 1);
+    if (safePage > 1) setCurrentPage(safePage - 1);
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(p => p + 1);
+    if (safePage < totalPages) setCurrentPage(safePage + 1);
   };
 
   if (isLoading) {
@@ -128,7 +124,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
           <button 
             className="pagination-btn" 
             onClick={handlePrevPage} 
-            disabled={currentPage === 1}
+            disabled={safePage === 1}
           >
             <ChevronLeft size={18} />
             Prev
@@ -137,7 +133,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <button 
                 key={page}
-                className={`page-number ${currentPage === page ? 'active' : ''}`}
+                className={`page-number ${safePage === page ? 'active' : ''}`}
                 onClick={() => setCurrentPage(page)}
               >
                 {page}
@@ -147,7 +143,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
           <button 
             className="pagination-btn" 
             onClick={handleNextPage} 
-            disabled={currentPage === totalPages}
+            disabled={safePage === totalPages}
           >
             Next
             <ChevronRight size={18} />
