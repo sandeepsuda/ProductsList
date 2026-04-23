@@ -1,54 +1,51 @@
-import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Package, Search, Bell, User } from 'lucide-react';
 import '../styles/Navigation.css';
 
 const Navigation: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const handleLinkClick = () => {
-    setIsOpen(false);
-  };
-
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo" onClick={handleLinkClick}>
-          <span className="logo-icon">📦</span>
-          <span className="logo-text">ProductsList</span>
+        
+        {/* Left Side: Logo */}
+        <Link to="/" className="navbar-logo">
+          <div className="logo-icon-wrapper">
+            <Package size={24} className="logo-icon" />
+          </div>
+          <span className="logo-text">Products Dashboard</span>
         </Link>
 
-        <div className={`hamburger ${isOpen ? 'active' : ''}`} onClick={toggleMenu}>
-          <span></span>
-          <span></span>
-          <span></span>
+        {/* Center: Search Bar */}
+        <div className="navbar-search">
+          <Search size={18} className="search-icon" />
+          <input 
+            type="text" 
+            placeholder="Search products..." 
+            className="search-input"
+          />
         </div>
 
-        <ul className={`nav-menu ${isOpen ? 'active' : ''}`}>
-          <li className="nav-item">
-            <NavLink
-              to="/"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleLinkClick}
-            >
-              <span className="link-icon">🛍️</span>
-              Products
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/about"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleLinkClick}
-            >
-              <span className="link-icon">ℹ️</span>
-              About
-            </NavLink>
-          </li>
-        </ul>
+        {/* Right Side: Actions & Profile */}
+        <div className="navbar-actions">
+          <button className="action-btn">
+            <Bell size={20} />
+            <span className="notification-dot"></span>
+          </button>
+          
+          <div className="profile-divider"></div>
+          
+          <button className="profile-btn">
+            <div className="avatar">
+              <User size={18} />
+            </div>
+            <div className="profile-info">
+              <span className="profile-name">Admin User</span>
+              <span className="profile-role">Manager</span>
+            </div>
+          </button>
+        </div>
+
       </div>
     </nav>
   );
