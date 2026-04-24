@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ProductData } from '../components/AllProductsPage';
+import { getMockCategory } from '../components/Product';
 
 interface ProductFromBackend {
   ID: number;
@@ -10,7 +11,8 @@ interface ProductFromBackend {
 
 const CATEGORIES = ['Electronics', 'Accessories', 'Audio', 'Office'];
 
-const getMockCategory = (id: number, name: string): string => {
+// Helper function moved outside component for purity
+export const getMockCategory = (id: number, name: string): string => {
   if (
     name.toLowerCase().includes('laptop') ||
     name.toLowerCase().includes('monitor') ||
@@ -45,8 +47,9 @@ const useProducts = (): UseProductsResult => {
     let cancelled = false;
 
     // Simulate network delay for skeleton loading demo
-    const timer = setTimeout(() => {
-      fetch('http://localhost:3000/products')
+    const isDev = import.meta.env.MODE === 'development';
+    const timer = isDev ? setTimeout(() => {
+      fetch(import.meta.env.VITE_API_URL)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Server responded with status ${response.status}`);

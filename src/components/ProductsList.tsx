@@ -44,7 +44,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
             </tr>
           </thead>
           <tbody>
-            {[1, 2, 3, 4, 5].map(i => (
+            {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
               <tr key={i} className="skeleton-row">
                 <td>
                   <div className="flex-cell">
