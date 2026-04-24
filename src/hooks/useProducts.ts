@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { ProductData } from '../components/AllProductsPage';
-import { getMockCategory } from '../helpers/productHelpers';
-
-interface ProductFromBackend {
-  ID: number;
-  'Product Name': string;
-  Quantity: number;
-  Price: number;
+interface UseProductsParams {
+  search?: string;
+  status?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }
 
 interface UseProductsResult {
@@ -15,35 +13,40 @@ interface UseProductsResult {
   error: string | null;
 }
 
-const useProducts = (): UseProductsResult => {
+const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { search, status, sort, order } = params;
+
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
+
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    if (status && status !== 'all') queryParams.append('status', status);
+    if (sort) queryParams.append('sort', sort);
+    if (order) queryParams.append('order', order);
+
+    const url = `${import.meta.env.VITE_API_URL}?${queryParams.toString()}`;
 
     // Simulate network delay for skeleton loading demo
     const isDev = import.meta.env.MODE === 'development';
     const delay = isDev ? 800 : 0;
+    
     const timer = setTimeout(() => {
-      fetch(import.meta.env.VITE_API_URL)
+      fetch(url)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Server responded with status ${response.status}`);
           }
           return response.json();
         })
-        .then((data: ProductFromBackend[]) => {
+        .then((data: ProductData[]) => {
           if (cancelled) return;
-          const formattedProducts = data.map((product) => ({
-            id: product.ID,
-            name: product['Product Name'],
-            category: getMockCategory(product.ID, product['Product Name']),
-            quantity: product.Quantity,
-            price: product.Price,
-          }));
-          setProducts(formattedProducts);
+          setProducts(data);
           setIsLoading(false);
         })
         .catch((err: Error) => {
@@ -58,7 +61,7 @@ const useProducts = (): UseProductsResult => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, []);
+  }, [search, status, sort, order]);
 
   return { products, isLoading, error };
 };

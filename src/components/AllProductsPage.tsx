@@ -13,48 +13,21 @@ export interface ProductData {
 }
 
 const AllProductsPage: React.FC = () => {
-  const { products, isLoading } = useProducts();
-
   // Controls state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('name-asc');
   const [filterOption, setFilterOption] = useState('all');
 
-  // Filter and Sort Data
-  const filteredAndSortedProducts = useMemo(() => {
-    let result = [...products];
+  // Derive BFF-compatible params
+  const [sort, order] = sortOption.split('-');
+  const bffSort = sort === 'qty' ? 'quantity' : sort;
 
-    // Filter by search
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        p.category.toLowerCase().includes(q)
-      );
-    }
-
-    // Filter by status
-    if (filterOption === 'low-stock') {
-      result = result.filter(p => p.quantity < 15);
-    } else if (filterOption === 'in-stock') {
-      result = result.filter(p => p.quantity >= 30);
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'price-asc': return a.price - b.price;
-        case 'price-desc': return b.price - a.price;
-        case 'qty-asc': return a.quantity - b.quantity;
-        case 'qty-desc': return b.quantity - a.quantity;
-        case 'name-asc': return a.name.localeCompare(b.name);
-        case 'name-desc': return b.name.localeCompare(a.name);
-        default: return 0;
-      }
-    });
-
-    return result;
-  }, [products, searchQuery, sortOption, filterOption]);
+  const { products, isLoading } = useProducts({
+    search: searchQuery,
+    status: filterOption,
+    sort: bffSort,
+    order: order as 'asc' | 'desc'
+  });
 
   return (
     <div className="all-products-page animate-fade-in">
@@ -106,7 +79,7 @@ const AllProductsPage: React.FC = () => {
 
         {/* Products Table Area */}
         <div className="products-section">
-          <ProductsList products={filteredAndSortedProducts} isLoading={isLoading} />
+          <ProductsList products={products} isLoading={isLoading} />
         </div>
         
       </div>

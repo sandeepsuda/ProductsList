@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run server\"",
+    "dev": "concurrently \"vite\" \"npm run server\" \"npm run bff\"",
     "server": "json-server --watch db.json",
+    "bff": "node bff/index.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
