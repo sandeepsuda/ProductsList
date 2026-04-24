@@ -9,7 +9,7 @@ interface ProductsListProps {
   isLoading: boolean;
 }
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10;
 
 const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,7 +35,6 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
         <table className="products-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Product</th>
               <th>Category</th>
               <th>Quantity</th>
@@ -47,7 +46,6 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
           <tbody>
             {[1, 2, 3, 4, 5].map(i => (
               <tr key={i} className="skeleton-row">
-                <td><div className="skeleton-text" style={{width: '30px'}}/></td>
                 <td>
                   <div className="flex-cell">
                     <div className="skeleton-avatar" />
@@ -91,7 +89,6 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
         <table className="products-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Product</th>
               <th>Category</th>
               <th>Quantity</th>
@@ -104,7 +101,6 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
             {paginatedProducts.map((product) => (
               <Product
                 key={product.id}
-                id={product.id}
                 name={product.name}
                 category={product.category}
                 quantity={product.quantity}

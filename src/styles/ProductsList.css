@@ -50,7 +50,7 @@
 }
 
 .product-row td {
-  padding: 16px 24px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -63,13 +63,6 @@
   font-family: var(--mono);
   font-size: 13px;
   color: var(--text-muted);
-}
-
-/* Product Cell with Avatar */
-.product-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .product-avatar {
@@ -85,9 +78,8 @@
 }
 
 .product-name {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-h);
-  font-size: 15px;
 }
 
 /* Category */
@@ -136,9 +128,8 @@
 /* Price */
 .product-price {
   font-family: var(--heading);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-h);
-  font-size: 16px;
 }
 
 /* Actions */

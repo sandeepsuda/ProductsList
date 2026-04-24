@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Package, AlertCircle, DollarSign, Tags, Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import ProductsList from './ProductsList';
+import useProducts from '../hooks/useProducts';
 import '../styles/AllProductsPage.css';
 
 export interface ProductData {
@@ -11,60 +12,13 @@ export interface ProductData {
   price: number;
 }
 
-interface ProductFromBackend {
-  ID: number;
-  "Product Name": string;
-  Quantity: number;
-  Price: number;
-}
-
-const CATEGORIES = ['Electronics', 'Accessories', 'Audio', 'Office'];
-
-// Helper to assign a mock category based on ID
-const getMockCategory = (id: number, name: string) => {
-  if (name.toLowerCase().includes('laptop') || name.toLowerCase().includes('monitor') || name.toLowerCase().includes('smartphone')) return 'Electronics';
-  if (name.toLowerCase().includes('headphones') || name.toLowerCase().includes('speaker')) return 'Audio';
-  if (name.toLowerCase().includes('keyboard') || name.toLowerCase().includes('mouse')) return 'Accessories';
-  return CATEGORIES[id % CATEGORIES.length];
-};
-
 const AllProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<ProductData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const { products, isLoading } = useProducts();
+
   // Controls state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('name-asc');
   const [filterOption, setFilterOption] = useState('all');
-
-  useEffect(() => {
-    // Simulate network delay for skeleton loading demo
-    setTimeout(() => {
-      fetch('http://localhost:3000/products')
-        .then((response) => response.json())
-        .then((data: ProductFromBackend[]) => {
-          const formattedProducts = data.map((product) => ({
-            id: product.ID,
-            name: product['Product Name'],
-            category: getMockCategory(product.ID, product['Product Name']),
-            quantity: product.Quantity,
-            price: product.Price,
-          }));
-          setProducts(formattedProducts);
-          setIsLoading(false);
-        })
-        .catch(err => {
-          console.error("Failed to fetch products", err);
-          setIsLoading(false);
-        });
-    }, 800);
-  }, []);
-
-  // Compute stats
-  const totalProducts = products.length;
-  const lowStockItems = products.filter(p => p.quantity < 15).length;
-  const totalValue = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
-  const uniqueCategories = new Set(products.map(p => p.category)).size;
 
   // Filter and Sort Data
   const filteredAndSortedProducts = useMemo(() => {
@@ -108,49 +62,6 @@ const AllProductsPage: React.FC = () => {
       <div className="page-header">
         <h1>Inventory Overview</h1>
         <p className="text-muted">Manage your products, pricing, and stock levels.</p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="summary-cards">
-        <div className="summary-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="card-icon-wrapper blue">
-            <Package size={24} />
-          </div>
-          <div className="card-content">
-            <span className="card-label">Total Products</span>
-            {isLoading ? <div className="skeleton-text" /> : <span className="card-value">{totalProducts}</span>}
-          </div>
-        </div>
-        
-        <div className="summary-card animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="card-icon-wrapper red">
-            <AlertCircle size={24} />
-          </div>
-          <div className="card-content">
-            <span className="card-label">Low Stock Items</span>
-            {isLoading ? <div className="skeleton-text" /> : <span className="card-value">{lowStockItems}</span>}
-          </div>
-        </div>
-
-        <div className="summary-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <div className="card-icon-wrapper green">
-            <DollarSign size={24} />
-          </div>
-          <div className="card-content">
-            <span className="card-label">Total Inventory Value</span>
-            {isLoading ? <div className="skeleton-text" /> : <span className="card-value">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>}
-          </div>
-        </div>
-
-        <div className="summary-card animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <div className="card-icon-wrapper purple">
-            <Tags size={24} />
-          </div>
-          <div className="card-content">
-            <span className="card-label">Categories</span>
-            {isLoading ? <div className="skeleton-text" /> : <span className="card-value">{uniqueCategories}</span>}
-          </div>
-        </div>
       </div>
 
       {/* Main Content Area */}

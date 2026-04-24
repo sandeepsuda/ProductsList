@@ -1,15 +1,14 @@
 import React from 'react';
-import { Edit2, Eye, Trash2, Box } from 'lucide-react';
+import { Edit2, Eye, Trash2 } from 'lucide-react';
 
 interface ProductProps {
-  id: number;
   name: string;
   category: string;
   quantity: number;
   price: number;
 }
 
-const Product: React.FC<ProductProps> = ({ id, name, category, quantity, price }) => {
+const Product: React.FC<ProductProps> = ({ name, category, quantity, price }) => {
   const getStatus = (qty: number) => {
     if (qty < 15) return { label: 'Low Stock', class: 'status-low' };
     if (qty <= 30) return { label: 'Medium', class: 'status-med' };
@@ -20,15 +19,8 @@ const Product: React.FC<ProductProps> = ({ id, name, category, quantity, price }
 
   return (
     <tr className="product-row">
-      <td className="product-id">#{id.toString().padStart(4, '0')}</td>
-      
       <td>
-        <div className="product-cell">
-          <div className="product-avatar">
-            <Box size={20} />
-          </div>
-          <span className="product-name">{name}</span>
-        </div>
+        <span className="product-name">{name}</span>
       </td>
 
       <td className="product-category">
