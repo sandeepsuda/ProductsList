@@ -8,17 +8,9 @@ interface ProductProps {
   price: number;
 }
 
-import { getStatus } from './Product';
+import { getStatus } from '../helpers/productHelpers';
 
 const Product: React.FC<ProductProps> = ({ name, category, quantity, price }) => {
-  // Helper function moved outside component for purity
-export const getStatus = (qty: number) => {
-    if (qty < 15) return { label: 'Low Stock', class: 'status-low' };
-    if (qty <= 30) return { label: 'Medium', class: 'status-med' };
-    return { label: 'In Stock', class: 'status-high' };
-  };
-
-
   const status = getStatus(quantity);
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ProductData } from '../components/AllProductsPage';
-import { getMockCategory } from '../components/Product';
+import { getMockCategory } from '../helpers/productHelpers';
 
 interface ProductFromBackend {
   ID: number;
@@ -8,29 +8,6 @@ interface ProductFromBackend {
   Quantity: number;
   Price: number;
 }
-
-const CATEGORIES = ['Electronics', 'Accessories', 'Audio', 'Office'];
-
-// Helper function moved outside component for purity
-export const getMockCategory = (id: number, name: string): string => {
-  if (
-    name.toLowerCase().includes('laptop') ||
-    name.toLowerCase().includes('monitor') ||
-    name.toLowerCase().includes('smartphone')
-  )
-    return 'Electronics';
-  if (
-    name.toLowerCase().includes('headphones') ||
-    name.toLowerCase().includes('speaker')
-  )
-    return 'Audio';
-  if (
-    name.toLowerCase().includes('keyboard') ||
-    name.toLowerCase().includes('mouse')
-  )
-    return 'Accessories';
-  return CATEGORIES[id % CATEGORIES.length];
-};
 
 interface UseProductsResult {
   products: ProductData[];
@@ -48,7 +25,8 @@ const useProducts = (): UseProductsResult => {
 
     // Simulate network delay for skeleton loading demo
     const isDev = import.meta.env.MODE === 'development';
-    const timer = isDev ? setTimeout(() => {
+    const delay = isDev ? 800 : 0;
+    const timer = setTimeout(() => {
       fetch(import.meta.env.VITE_API_URL)
         .then((response) => {
           if (!response.ok) {
@@ -74,7 +52,7 @@ const useProducts = (): UseProductsResult => {
           setError(err.message ?? 'Unknown error');
           setIsLoading(false);
         });
-    }, 800);
+    }, delay);
 
     return () => {
       cancelled = true;
