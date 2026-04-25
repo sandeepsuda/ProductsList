@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run server\" \"npm run bff\"",
-    "server": "json-server --watch db.json",
-    "bff": "node bff/index.js",
+    "dev": "concurrently \"vite\" \"npm run server\" \"npm run api\"",
+    "server": "json-server --watch db.json --port 3000",
+    "api": "node server/index.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

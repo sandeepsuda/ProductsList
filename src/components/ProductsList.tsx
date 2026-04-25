@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { PackageX, ChevronLeft, ChevronRight } from 'lucide-react';
 import Product from './Product';
 import type { ProductData } from './AllProductsPage';
@@ -7,11 +7,12 @@ import '../styles/ProductsList.css';
 interface ProductsListProps {
   products: ProductData[];
   isLoading: boolean;
+  onDelete: (id: number) => void;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
+const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDelete }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
@@ -101,10 +102,12 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading }) => {
             {paginatedProducts.map((product) => (
               <Product
                 key={product.id}
+                id={product.id}
                 name={product.name}
                 category={product.category}
                 quantity={product.quantity}
                 price={product.price}
+                onDelete={onDelete}
               />
             ))}
           </tbody>

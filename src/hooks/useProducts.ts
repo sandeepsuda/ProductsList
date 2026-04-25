@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ProductData } from '../components/AllProductsPage';
+
 interface UseProductsParams {
   search?: string;
   status?: string;
@@ -11,6 +12,7 @@ interface UseProductsResult {
   products: ProductData[];
   isLoading: boolean;
   error: string | null;
+  deleteProduct: (id: number) => void;
 }
 
 const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
@@ -20,17 +22,42 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
 
   const { search, status, sort, order } = params;
 
+  // Track the last used params to detect changes during render.
+  // This avoids cascading renders caused by calling setState synchronously in useEffect.
+  const [prevParams, setPrevParams] = useState(params);
+
+  if (
+    search !== prevParams.search ||
+    status !== prevParams.status ||
+    sort !== prevParams.sort ||
+    order !== prevParams.order
+  ) {
+    setIsLoading(true);
+    setError(null);
+    setPrevParams(params);
+  }
+
+  const deleteProduct = useCallback((id: number) => {
+    // Optimistically update the state
+    setProducts((currentProducts) => currentProducts.filter(p => p.id !== id));
+    
+    // In a real app, you would also make a DELETE request to your API here
+    // fetch(`${import.meta.env.VITE_API_URL}/${id}`, { method: 'DELETE' }).catch(console.error);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-
+    
     const queryParams = new URLSearchParams();
     if (search) queryParams.append('search', search);
     if (status && status !== 'all') queryParams.append('status', status);
     if (sort) queryParams.append('sort', sort);
     if (order) queryParams.append('order', order);
 
-    const url = `${import.meta.env.VITE_API_URL}?${queryParams.toString()}`;
+    const queryString = queryParams.toString();
+    const url = queryString 
+      ? `${import.meta.env.VITE_API_URL}?${queryString}` 
+      : import.meta.env.VITE_API_URL;
 
     // Simulate network delay for skeleton loading demo
     const isDev = import.meta.env.MODE === 'development';
@@ -63,7 +90,7 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
     };
   }, [search, status, sort, order]);
 
-  return { products, isLoading, error };
+  return { products, isLoading, error, deleteProduct };
 };
 
 export default useProducts;

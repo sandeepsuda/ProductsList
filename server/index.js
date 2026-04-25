@@ -57,11 +57,11 @@ app.get('/api/products', async (req, res) => {
 
     res.json(products);
   } catch (error) {
-    console.error('BFF Error:', error.message);
+    console.error('API Server Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch products from backend' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`BFF running on http://localhost:${PORT}`);
+  console.log(`API Server running on http://localhost:${PORT}`);
 });

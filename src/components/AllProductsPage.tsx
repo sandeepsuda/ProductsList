@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import ProductsList from './ProductsList';
 import useProducts from '../hooks/useProducts';
@@ -18,14 +18,14 @@ const AllProductsPage: React.FC = () => {
   const [sortOption, setSortOption] = useState('name-asc');
   const [filterOption, setFilterOption] = useState('all');
 
-  // Derive BFF-compatible params
+  // Derive API-compatible params
   const [sort, order] = sortOption.split('-');
-  const bffSort = sort === 'qty' ? 'quantity' : sort;
+  const apiSort = sort === 'qty' ? 'quantity' : sort;
 
-  const { products, isLoading } = useProducts({
+  const { products, isLoading, error, deleteProduct } = useProducts({
     search: searchQuery,
     status: filterOption,
-    sort: bffSort,
+    sort: apiSort,
     order: order as 'asc' | 'desc'
   });
 
@@ -36,6 +36,12 @@ const AllProductsPage: React.FC = () => {
         <h1>Inventory Overview</h1>
         <p className="text-muted">Manage your products, pricing, and stock levels.</p>
       </div>
+
+      {error && (
+        <div className="error-banner animate-slide-up">
+          <p>Error: {error}</p>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="dashboard-content animate-slide-up" style={{ animationDelay: '0.5s' }}>
@@ -79,7 +85,7 @@ const AllProductsPage: React.FC = () => {
 
         {/* Products Table Area */}
         <div className="products-section">
-          <ProductsList products={products} isLoading={isLoading} />
+          <ProductsList products={products} isLoading={isLoading} onDelete={deleteProduct} />
         </div>
         
       </div>
