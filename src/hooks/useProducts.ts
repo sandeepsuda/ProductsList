@@ -12,7 +12,7 @@ interface UseProductsResult {
   products: ProductData[];
   isLoading: boolean;
   error: string | null;
-  deleteProduct: (id: number) => void;
+  deleteProduct: (id: string) => void;
 }
 
 const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
@@ -37,13 +37,23 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
     setPrevParams(params);
   }
 
-  const deleteProduct = useCallback((id: number) => {
+  const deleteProduct = useCallback((id: string) => {
     // Optimistically update the state
     setProducts((currentProducts) => currentProducts.filter(p => p.id !== id));
-    
+
     // In a real app, you would also make a DELETE request to your API here
-    // fetch(`${import.meta.env.VITE_API_URL}/${id}`, { method: 'DELETE' }).catch(console.error);
+    const baseUrl = import.meta.env.VITE_API_URL;
+    fetch(`${baseUrl}/${id}`, { method: 'DELETE' })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to delete product');
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        // Refresh products if delete failed to revert optimistic update
+        window.location.reload(); 
+      });
   }, []);
+
 
   useEffect(() => {
     let cancelled = false;
