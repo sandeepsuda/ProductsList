@@ -24,7 +24,6 @@ import {
   Person as PersonIcon,
   Menu as MenuIcon,
   Info as InfoIcon,
-  Dashboard as DashboardIcon,
 } from '@mui/icons-material'
 import Footer from './Footer'
 
@@ -55,19 +54,19 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
             <Box component={LinkBehavior} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
               <Inventory2Icon />
               <Typography variant="h6" component="span" sx={{ ml: 1 }}>
-                Products Dashboard
+                Products Catalog
               </Typography>
             </Box>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit">
+            <IconButton color="inherit" aria-label="view notifications">
               <Badge color="error" variant="dot">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
 
-            <IconButton color="inherit">
+            <IconButton color="inherit" aria-label="open user profile">
               <Avatar sx={{ width: 32, height: 32 }}>
                 <PersonIcon />
               </Avatar>
@@ -85,15 +84,6 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
                   <Inventory2Icon />
                 </ListItemIcon>
                 <ListItemText primary="Products" />
-              </ListItemButton>
-            </ListItem>
-
-            <ListItem disablePadding>
-              <ListItemButton component={LinkBehavior} to="/dashboard">
-                <ListItemIcon>
-                  <DashboardIcon />
-                </ListItemIcon>
-                <ListItemText primary="Dashboard" />
               </ListItemButton>
             </ListItem>
 

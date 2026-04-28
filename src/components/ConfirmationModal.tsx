@@ -70,10 +70,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   }, [onConfirm, onClose])
 
   useEffect(() => {
-    if (!isOpen) {
-      const t = setTimeout(() => setInternalError(null), 200)
-      return () => clearTimeout(t)
+    if (isOpen) {
+      setInternalError(null)
+      return
     }
+    const t = setTimeout(() => setInternalError(null), 200)
+    return () => clearTimeout(t)
   }, [isOpen])
 
   return (

@@ -32,7 +32,7 @@ const Navigation: React.FC = () => {
           <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', bgcolor: 'primary.main', color: '#fff', borderRadius: 1, mr: 1 }}>
             <Inventory2Icon fontSize="small" />
           </Box>
-          <Typography variant="h6">Products Dashboard</Typography>
+          <Typography variant="h6">Products Catalog</Typography>
         </Box>
 
         <SearchBox>

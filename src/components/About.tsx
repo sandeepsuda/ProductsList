@@ -39,17 +39,14 @@ const About: React.FC = () => {
         </Stack>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <FeatureCard title="Product Catalog" description="Browse a comprehensive product database with real-time availability at a glance." />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <FeatureCard title="Stock Management" description="Track inventory levels with clear low-stock indicators and status badges." />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <FeatureCard title="Price Display" description="Clear, formatted pricing for every item — no hidden fees, no confusion." />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard title="Quick Stats" description="Dashboard summary cards showing total products, stock levels, and inventory value." />
           </Grid>
         </Grid>
       </Box>
