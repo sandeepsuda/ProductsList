@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import AllProductsPage from './components/AllProductsPage';
 import About from './components/About';
+import Dashboard from './components/Dashboard';
 import './App.css';
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
     <AppShell>
       <Routes>
         <Route path="/about" element={<About />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/" element={<AllProductsPage />} />
       </Routes>
     </AppShell>

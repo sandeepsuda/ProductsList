@@ -4,10 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const Product = require('./models/Product');
 
-const dbPath = path.join(__dirname, '../db.json');
-const rawData = fs.readFileSync(dbPath);
-const { products } = JSON.parse(rawData);
-
 const CATEGORIES = ['Electronics', 'Accessories', 'Audio', 'Office'];
 const getCategory = (id, name) => {
   const lowerName = name.toLowerCase();
@@ -17,8 +13,28 @@ const getCategory = (id, name) => {
   return CATEGORIES[id % CATEGORIES.length];
 };
 
+const loadProductsData = () => {
+  const dbPath = path.join(__dirname, '../db.json');
+  try {
+    if (!fs.existsSync(dbPath)) {
+      throw new Error(`Seed data file not found at ${dbPath}`);
+    }
+    const rawData = fs.readFileSync(dbPath, 'utf8');
+    const data = JSON.parse(rawData);
+    if (!data.products || !Array.isArray(data.products)) {
+      throw new Error('Invalid seed data format: "products" array missing');
+    }
+    return data.products;
+  } catch (error) {
+    console.error('Error loading seed data:', error.message);
+    process.exit(1);
+  }
+};
+
 const seed = async () => {
   try {
+    const products = loadProductsData();
+
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB for seeding...');
 

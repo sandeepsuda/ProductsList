@@ -95,7 +95,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <Box sx={{ minWidth: 360 }}>
           <Box sx={{ mb: 1 }}>{children}</Box>
           {displayError && (
-            <Alert severity={color} sx={{ mt: 1 }}>
+            <Alert severity="error" sx={{ mt: 1 }}>
               {displayError}
             </Alert>
           )}

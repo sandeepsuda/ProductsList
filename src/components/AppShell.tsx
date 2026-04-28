@@ -12,8 +12,6 @@ import {
   ListItemIcon,
   ListItemText,
   Container,
-  TextField,
-  InputAdornment,
   Badge,
   Avatar,
   Divider,
@@ -22,11 +20,11 @@ import { Link as RouterLink } from 'react-router-dom'
 import type { LinkProps as RouterLinkProps } from 'react-router-dom'
 import {
   Inventory2 as Inventory2Icon,
-  Search as SearchIcon,
   Notifications as NotificationsIcon,
   Person as PersonIcon,
   Menu as MenuIcon,
   Info as InfoIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material'
 import Footer from './Footer'
 
@@ -63,15 +61,6 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ width: 300 }}>
-              <TextField
-                size="small"
-                placeholder="Search products..."
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-                fullWidth
-              />
-            </Box>
-
             <IconButton color="inherit">
               <Badge color="error" variant="dot">
                 <NotificationsIcon />
@@ -100,6 +89,15 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
             </ListItem>
 
             <ListItem disablePadding>
+              <ListItemButton component={LinkBehavior} to="/dashboard">
+                <ListItemIcon>
+                  <DashboardIcon />
+                </ListItemIcon>
+                <ListItemText primary="Dashboard" />
+              </ListItemButton>
+            </ListItem>
+
+            <ListItem disablePadding>
               <ListItemButton component={LinkBehavior} to="/about">
                 <ListItemIcon>
                   <InfoIcon />
@@ -112,7 +110,7 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
         </Box>
       </Drawer>
 
-      <Container component="main" sx={{ flex: 1, py: 3, maxWidth: 'xl' }}>
+      <Container component="main" maxWidth="xl" sx={{ flex: 1, py: 3 }}>
         {children}
       </Container>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Inventory2 as Inventory2Icon } from '@mui/icons-material'
 import Product from './Product';
 import type { ProductData } from './AllProductsPage';
@@ -29,6 +29,13 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
 
   const rowsPerPage = ITEMS_PER_PAGE;
   const totalCount = products.length;
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1);
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [totalCount, rowsPerPage, page]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);

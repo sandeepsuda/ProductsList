@@ -10,11 +10,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
 // API Routes
 app.get('/api/products', async (req, res) => {
   try {
@@ -24,7 +19,9 @@ app.get('/api/products', async (req, res) => {
 
     // 1. Search (Name or Category)
     if (search) {
-      const searchRegex = new RegExp(search, 'i');
+      // Escape user input to prevent ReDoS and malformed regex errors
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
       query.$or = [
         { name: searchRegex },
         { category: searchRegex }
@@ -58,7 +55,17 @@ app.get('/api/products', async (req, res) => {
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await Product.findByIdAndDelete(id);
+    
+    // Validate ObjectId before attempting to delete
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const result = await Product.findByIdAndDelete(id);
+    if (!result) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
     res.status(204).send();
   } catch (error) {
     console.error('API Server Error:', error.message);
@@ -66,6 +73,15 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API Server running on http://localhost:${PORT}`);
-});
+// MongoDB Connection and Server Startup
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+    app.listen(PORT, () => {
+      console.log(`API Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1); // Fail startup when MongoDB is unavailable
+  });
