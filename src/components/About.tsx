@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Container,
   Box,
@@ -24,9 +25,9 @@ const About: React.FC = () => {
     <Container maxWidth="lg">
       <Box sx={{ textAlign: 'center', py: 6 }}>
         <Typography variant="overline" color="primary" sx={{ fontWeight: 700 }}>Inventory Management Platform</Typography>
-        <Typography variant="h3" component="h1" sx={{ my: 2 }}>ProductsList</Typography>
+        <Typography variant="h3" component="h1" sx={{ my: 2 }}>Products Catalog</Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>Browse, track and manage your entire product catalog in one clean, fast, and intuitive interface.</Typography>
-        <Button variant="contained" href="/">View Products →</Button>
+        <Button variant="contained" component={RouterLink} to="/">View Products →</Button>
       </Box>
 
       <Box sx={{ py: 4 }}>
@@ -53,7 +54,7 @@ const About: React.FC = () => {
 
       <Box sx={{ py: 6, textAlign: 'center' }}>
         <Typography variant="h6" sx={{ mb: 1 }}>Ready to explore?</Typography>
-        <Button variant="outlined" href="/">View Products →</Button>
+        <Button variant="outlined" component={RouterLink} to="/">View Products →</Button>
       </Box>
     </Container>
   )

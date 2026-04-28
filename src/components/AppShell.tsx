@@ -104,7 +104,7 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
         {children}
       </Container>
 
-      <Box component="footer" sx={{ mt: 'auto' }}>
+      <Box sx={{ mt: 'auto' }}>
         <Footer />
       </Box>
     </Box>

@@ -56,32 +56,40 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const Icon = variantConfig[variant].icon
   const color = variantConfig[variant].color as 'error' | 'warning' | 'info' | 'success'
 
+  const closeAndReset = useCallback(() => {
+    setInternalError(null)
+    onClose()
+  }, [onClose])
+
+  const handleDialogClose = useCallback(() => {
+    if (isLoading) return
+    closeAndReset()
+  }, [isLoading, closeAndReset])
+
   const handleConfirm = useCallback(async () => {
     setIsLoading(true)
     setInternalError(null)
     try {
       await onConfirm()
-      onClose()
+      closeAndReset()
     } catch (err) {
       setInternalError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setIsLoading(false)
     }
-  }, [onConfirm, onClose])
+  }, [onConfirm, closeAndReset])
 
   useEffect(() => {
-    if (isOpen) {
-      setInternalError(null)
-      return
+    if (!isOpen) {
+      const t = setTimeout(() => setInternalError(null), 200)
+      return () => clearTimeout(t)
     }
-    const t = setTimeout(() => setInternalError(null), 200)
-    return () => clearTimeout(t)
   }, [isOpen])
 
   return (
     <Dialog
       open={isOpen}
-      onClose={!isLoading ? onClose : undefined}
+      onClose={handleDialogClose}
       aria-labelledby="confirmation-dialog-title"
     >
       <DialogTitle id="confirmation-dialog-title">
@@ -105,7 +113,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} disabled={isLoading}>
+        <Button onClick={handleDialogClose} disabled={isLoading}>
           {cancelButtonText}
         </Button>
         <Button onClick={handleConfirm} variant="contained" color={color} disabled={isLoading} startIcon={isLoading ? <CircularProgress color="inherit" size={16} /> : undefined}>
