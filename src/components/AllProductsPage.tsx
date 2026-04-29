@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Search as SearchIcon } from '@mui/icons-material';
 import ProductsList from './ProductsList';
 import useProducts from '../hooks/useProducts';
-import '../styles/AllProductsPage.css';
+
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
+  Alert,
+} from '@mui/material';
 
 export interface ProductData {
-  id: number;
+  id: string;
   name: string;
   category: string;
   quantity: number;
@@ -13,12 +26,10 @@ export interface ProductData {
 }
 
 const AllProductsPage: React.FC = () => {
-  // Controls state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('name-asc');
   const [filterOption, setFilterOption] = useState('all');
 
-  // Derive API-compatible params
   const [sort, order] = sortOption.split('-');
   const apiSort = sort === 'qty' ? 'quantity' : sort;
 
@@ -30,66 +41,78 @@ const AllProductsPage: React.FC = () => {
   });
 
   return (
-    <div className="all-products-page animate-fade-in">
-      
-      <div className="page-header">
-        <h1>Inventory Overview</h1>
-        <p className="text-muted">Manage your products, pricing, and stock levels.</p>
-      </div>
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Inventory Overview
+        </Typography>
+        <Typography color="text.secondary">Manage your products, pricing, and stock levels.</Typography>
+      </Box>
 
       {error && (
-        <div className="error-banner animate-slide-up">
-          <p>Error: {error}</p>
-        </div>
+        <Box sx={{ mb: 2 }}>
+          <Alert severity="error">Error: {error}</Alert>
+        </Box>
       )}
 
-      {/* Main Content Area */}
-      <div className="dashboard-content animate-slide-up" style={{ animationDelay: '0.5s' }}>
-        
-        {/* Controls Above Table */}
-        <div className="table-controls">
-          <div className="control-search">
-            <Search size={18} className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Search by name or category..." 
+      <Stack spacing={2}>
+        <Paper sx={{ p: 2 }} elevation={1}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
+            <TextField
+              size="small"
+              placeholder="Search by name or category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ minWidth: { xs: '100%', sm: 300 } }}
             />
-          </div>
-          
-          <div className="control-filters">
-            <div className="filter-group">
-              <SlidersHorizontal size={16} className="filter-icon" />
-              <select value={filterOption} onChange={(e) => setFilterOption(e.target.value)}>
-                <option value="all">All Status</option>
-                <option value="in-stock">In Stock (&ge;30)</option>
-                <option value="low-stock">Low Stock (&lt;15)</option>
-              </select>
-              <ChevronDown size={16} className="dropdown-icon" />
-            </div>
 
-            <div className="filter-group">
-              <select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
-                <option value="name-asc">Sort by Name (A-Z)</option>
-                <option value="name-desc">Sort by Name (Z-A)</option>
-                <option value="price-asc">Sort by Price (Low-High)</option>
-                <option value="price-desc">Sort by Price (High-Low)</option>
-                <option value="qty-asc">Sort by Quantity (Low-High)</option>
-                <option value="qty-desc">Sort by Quantity (High-Low)</option>
-              </select>
-              <ChevronDown size={16} className="dropdown-icon" />
-            </div>
-          </div>
-        </div>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="filter-label">Filter</InputLabel>
+                <Select
+                  labelId="filter-label"
+                  value={filterOption}
+                  label="Filter"
+                  onChange={(e) => setFilterOption(e.target.value)}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="in-stock">In Stock (≥30)</MenuItem>
+                  <MenuItem value="low-stock">Low Stock (&lt;15)</MenuItem>
+                </Select>
+              </FormControl>
 
-        {/* Products Table Area */}
-        <div className="products-section">
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel id="sort-label">Sort</InputLabel>
+                <Select
+                  labelId="sort-label"
+                  value={sortOption}
+                  label="Sort"
+                  onChange={(e) => setSortOption(e.target.value)}
+                >
+                  <MenuItem value="name-asc">Name (A-Z)</MenuItem>
+                  <MenuItem value="name-desc">Name (Z-A)</MenuItem>
+                  <MenuItem value="price-asc">Price (Low-High)</MenuItem>
+                  <MenuItem value="price-desc">Price (High-Low)</MenuItem>
+                  <MenuItem value="qty-asc">Quantity (Low-High)</MenuItem>
+                  <MenuItem value="qty-desc">Quantity (High-Low)</MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
+          </Stack>
+        </Paper>
+
+        <Paper sx={{ p: 1 }} elevation={0}>
           <ProductsList products={products} isLoading={isLoading} onDelete={deleteProduct} />
-        </div>
-        
-      </div>
-    </div>
+        </Paper>
+      </Stack>
+    </Box>
   );
 };
 
