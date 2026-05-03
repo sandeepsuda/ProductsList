@@ -34,14 +34,9 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
   // Calculate the maximum allowed page based on the current product list size.
   const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1);
   
-  // If the current page state is out of bounds (e.g., after filtering or deletion),
-  // we adjust it during render. React will re-render immediately with the new value
-  // before painting, avoiding a cascading render from an Effect.
-  if (page > maxPage) {
-    setPage(maxPage);
-  }
-
   // Use the safe page for slicing the data and for the pagination component.
+  // This ensures the UI is always correct even if the 'page' state is temporarily out of bounds
+  // (e.g., after filtering or deletion).
   const displayPage = Math.min(page, maxPage);
   const paginatedProducts = products.slice(displayPage * rowsPerPage, displayPage * rowsPerPage + rowsPerPage);
 

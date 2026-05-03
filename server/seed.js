@@ -34,6 +34,9 @@ const seedDatabase = async () => {
 
     const products = generateProducts(500);
     
+    console.log('Clearing existing products...');
+    await Product.deleteMany({});
+    
     console.log(`Inserting ${products.length} products...`);
     // Using insertMany for batch insertion as suggested
     await Product.insertMany(products);

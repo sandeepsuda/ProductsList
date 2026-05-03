@@ -112,7 +112,7 @@ app.post('/api/products', async (req, res) => {
 });
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(async () => {
+  .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
       console.log(`API Server running on http://localhost:${PORT}`);
