@@ -5,7 +5,6 @@ import {
   Grid,
   Typography,
   Link,
-  Chip,
 } from '@mui/material'
 
 const Footer: React.FC = () => {
@@ -40,10 +39,6 @@ const Footer: React.FC = () => {
 
         <Box sx={{ borderTop: 1, borderColor: 'divider', mt: 4, pt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="body2">© {currentYear} ProductsList. All rights reserved.</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Chip label="Built with React" variant="outlined" size="small" />
-            <Chip label="Powered by Vite" variant="outlined" size="small" />
-          </Box>
         </Box>
       </Container>
     </Box>

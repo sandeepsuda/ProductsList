@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Inventory2 as Inventory2Icon } from '@mui/icons-material'
 import Product from './Product';
 import type { ProductData } from './AllProductsPage';
@@ -20,28 +20,29 @@ interface ProductsListProps {
   products: ProductData[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDelete }) => {
+const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDelete, onEdit }) => {
   const [page, setPage] = useState(0);
 
   const rowsPerPage = ITEMS_PER_PAGE;
   const totalCount = products.length;
 
-  useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1);
-    if (page > maxPage) {
-      setPage(maxPage);
-    }
-  }, [totalCount, rowsPerPage, page]);
+  // Calculate the maximum allowed page based on the current product list size.
+  const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1);
+  
+  // Use the safe page for slicing the data and for the pagination component.
+  // This ensures the UI is always correct even if the 'page' state is temporarily out of bounds
+  // (e.g., after filtering or deletion).
+  const displayPage = Math.min(page, maxPage);
+  const paginatedProducts = products.slice(displayPage * rowsPerPage, displayPage * rowsPerPage + rowsPerPage);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
-
-  const paginatedProducts = products.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   if (isLoading) {
     return (
@@ -120,6 +121,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
                 quantity={product.quantity}
                 price={product.price}
                 onDelete={onDelete}
+                onEdit={onEdit}
               />
             ))}
           </TableBody>
@@ -129,7 +131,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
       <TablePagination
         component="div"
         count={totalCount}
-        page={page}
+        page={displayPage}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
         rowsPerPageOptions={[rowsPerPage]}
