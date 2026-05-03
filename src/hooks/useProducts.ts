@@ -13,6 +13,8 @@ interface UseProductsResult {
   isLoading: boolean;
   error: string | null;
   deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<ProductData, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Omit<ProductData, 'id'>) => Promise<void>;
 }
 
 const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
@@ -41,7 +43,6 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
     // Optimistically update the state
     setProducts((currentProducts) => currentProducts.filter(p => p.id !== id));
 
-    // In a real app, you would also make a DELETE request to your API here
     const baseUrl = import.meta.env.VITE_API_URL;
     fetch(`${baseUrl}/${id}`, { method: 'DELETE' })
       .then(res => {
@@ -49,11 +50,47 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
       })
       .catch(err => {
         console.error('Delete error:', err);
-        // Refresh products if delete failed to revert optimistic update
         window.location.reload(); 
       });
   }, []);
 
+  const addProduct = useCallback(async (newProductData: Omit<ProductData, 'id'>) => {
+    const baseUrl = import.meta.env.VITE_API_URL;
+    try {
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProductData),
+      });
+      
+      if (!response.ok) throw new Error('Failed to add product');
+      
+      const savedProduct = await response.json();
+      setProducts((prev) => [savedProduct, ...prev]);
+    } catch (err) {
+      console.error('Add product error:', err);
+      throw err;
+    }
+  }, []);
+
+  const updateProduct = useCallback(async (id: string, updatedData: Omit<ProductData, 'id'>) => {
+    const baseUrl = import.meta.env.VITE_API_URL;
+    try {
+      const response = await fetch(`${baseUrl}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+      
+      if (!response.ok) throw new Error('Failed to update product');
+      
+      const updatedProduct = await response.json();
+      setProducts((prev) => prev.map(p => p.id === id ? updatedProduct : p));
+    } catch (err) {
+      console.error('Update product error:', err);
+      throw err;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +106,6 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
       ? `${import.meta.env.VITE_API_URL}?${queryString}` 
       : import.meta.env.VITE_API_URL;
 
-    // Simulate network delay for skeleton loading demo
     const isDev = import.meta.env.MODE === 'development';
     const delay = isDev ? 800 : 0;
     
@@ -100,7 +136,7 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
     };
   }, [search, status, sort, order]);
 
-  return { products, isLoading, error, deleteProduct };
+  return { products, isLoading, error, deleteProduct, addProduct, updateProduct };
 };
 
 export default useProducts;

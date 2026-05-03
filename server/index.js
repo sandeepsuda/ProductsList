@@ -73,9 +73,46 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// MongoDB Connection and Server Startup
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, quantity, price } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { name, category, quantity, price },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error('API Server Error:', error.message);
+    res.status(400).json({ error: 'Failed to update product. Ensure all fields are valid.' });
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const { name, category, quantity, price } = req.body;
+    const newProduct = new Product({ name, category, quantity, price });
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    console.error('API Server Error:', error.message);
+    res.status(400).json({ error: 'Failed to create product. Ensure all fields are valid.' });
+  }
+});
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
       console.log(`API Server running on http://localhost:${PORT}`);

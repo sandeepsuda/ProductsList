@@ -4,9 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run api\"",
-    "server": "echo \"json-server is no longer used\"",
-    "api": "node server/index.js",
+    "dev": "concurrently \"vite\" \"npm run server\"",
+    "server": "node server/index.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

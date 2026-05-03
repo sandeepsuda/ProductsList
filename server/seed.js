@@ -1,59 +1,49 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const mongoose = require('mongoose');
-const fs = require('fs');
-const path = require('path');
 const Product = require('./models/Product');
 
-const CATEGORIES = ['Electronics', 'Accessories', 'Audio', 'Office'];
-const getCategory = (id, name) => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('laptop') || lowerName.includes('monitor') || lowerName.includes('smartphone')) return 'Electronics';
-  if (lowerName.includes('headphones') || lowerName.includes('speaker')) return 'Audio';
-  if (lowerName.includes('keyboard') || lowerName.includes('mouse')) return 'Accessories';
-  return CATEGORIES[id % CATEGORIES.length];
-};
+const categories = ['Electronics', 'Accessories', 'Audio', 'Home Office', 'Gifts', 'Wearables'];
+const prefixes = ['Pro', 'Ultra', 'Smart', 'Wireless', 'Mini', 'Eco', 'Super', 'Hyper'];
+const nouns = ['Mouse', 'Keyboard', 'Monitor', 'Headphones', 'Laptop', 'Speaker', 'Watch', 'Charger', 'Hub', 'Light'];
 
-const loadProductsData = () => {
-  const dbPath = path.join(__dirname, '../db.json');
-  try {
-    if (!fs.existsSync(dbPath)) {
-      throw new Error(`Seed data file not found at ${dbPath}`);
-    }
-    const rawData = fs.readFileSync(dbPath, 'utf8');
-    const data = JSON.parse(rawData);
-    if (!data.products || !Array.isArray(data.products)) {
-      throw new Error('Invalid seed data format: "products" array missing');
-    }
-    return data.products;
-  } catch (error) {
-    console.error('Error loading seed data:', error.message);
-    process.exit(1);
+const generateProducts = (count) => {
+  const products = [];
+  for (let i = 1; i <= count; i++) {
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    products.push({
+      name: `${prefix} ${noun} ${i}`,
+      category: categories[Math.floor(Math.random() * categories.length)],
+      quantity: Math.floor(Math.random() * 150),
+      price: Math.floor(Math.random() * 950) + 50
+    });
   }
+  return products;
 };
 
-const seed = async () => {
+const seedDatabase = async () => {
   try {
-    const products = loadProductsData();
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error('MONGODB_URI not found in environment variables');
+    }
 
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB for seeding...');
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(uri);
+    console.log('Connected.');
 
-    await Product.deleteMany({}); // Clear existing data
+    const products = generateProducts(500);
     
-    const enrichedProducts = products.map(p => ({
-      name: p.name,
-      quantity: p.quantity,
-      price: p.price,
-      category: getCategory(p.id, p.name)
-    }));
-
-    await Product.insertMany(enrichedProducts);
-    console.log('Database seeded successfully!');
+    console.log(`Inserting ${products.length} products...`);
+    // Using insertMany for batch insertion as suggested
+    await Product.insertMany(products);
+    
+    console.log('Successfully seeded 500 documents!');
     process.exit(0);
   } catch (error) {
-    console.error('Seeding error:', error);
+    console.error('Seeding failed:', error);
     process.exit(1);
   }
 };
 
-seed();
+seedDatabase();
