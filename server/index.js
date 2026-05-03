@@ -95,7 +95,10 @@ app.put('/api/products/:id', async (req, res) => {
     res.json(updatedProduct);
   } catch (error) {
     console.error('API Server Error:', error.message);
-    res.status(400).json({ error: 'Failed to update product. Ensure all fields are valid.' });
+    if (error?.name === 'ValidationError' || error?.name === 'CastError') {
+      return res.status(400).json({ error: 'Failed to update product. Ensure all fields are valid.' });
+    }
+    return res.status(500).json({ error: 'Failed to update product' });
   }
 });
 
@@ -107,7 +110,10 @@ app.post('/api/products', async (req, res) => {
     res.status(201).json(savedProduct);
   } catch (error) {
     console.error('API Server Error:', error.message);
-    res.status(400).json({ error: 'Failed to create product. Ensure all fields are valid.' });
+    if (error?.name === 'ValidationError' || error?.name === 'CastError') {
+      return res.status(400).json({ error: 'Failed to create product. Ensure all fields are valid.' });
+    }
+    return res.status(500).json({ error: 'Failed to create product' });
   }
 });
 
