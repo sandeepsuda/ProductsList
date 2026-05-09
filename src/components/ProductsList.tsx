@@ -13,7 +13,6 @@ import {
   Box,
   Typography,
   TablePagination,
-  Skeleton,
 } from '@mui/material';
 
 interface ProductsListProps {
@@ -44,50 +43,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
     setPage(newPage);
   };
 
-  if (isLoading) {
-    return (
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Product</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Quantity</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Array.from({ length: rowsPerPage }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <Skeleton variant="circular" width={40} height={40} />
-                </TableCell>
-                <TableCell>
-                  <Skeleton width={120} />
-                </TableCell>
-                <TableCell>
-                  <Skeleton width={60} />
-                </TableCell>
-                <TableCell>
-                  <Skeleton width={80} />
-                </TableCell>
-                <TableCell align="right">
-                  <Skeleton width={60} />
-                </TableCell>
-                <TableCell align="right">
-                  <Skeleton width={120} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    );
-  }
-
-  if (products.length === 0) {
+  if (isLoading && products.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 6 }}>
         <Inventory2Icon sx={{ fontSize: 56 }} />

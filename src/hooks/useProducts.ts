@@ -12,6 +12,7 @@ interface UseProductsResult {
   products: ProductData[];
   isLoading: boolean;
   error: string | null;
+  fetchProducts: (signal?: AbortSignal) => Promise<void>;
   deleteProduct: (id: string) => void;
   addProduct: (product: Omit<ProductData, 'id'>) => Promise<void>;
   updateProduct: (id: string, product: Omit<ProductData, 'id'>) => Promise<void>;
@@ -92,9 +93,7 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    
+  const fetchProducts = useCallback(async (signal?: AbortSignal) => {
     const queryParams = new URLSearchParams();
     if (search) queryParams.append('search', search);
     if (status && status !== 'all') queryParams.append('status', status);
@@ -106,37 +105,40 @@ const useProducts = (params: UseProductsParams = {}): UseProductsResult => {
       ? `${import.meta.env.VITE_API_URL}?${queryString}` 
       : import.meta.env.VITE_API_URL;
 
-    const isDev = import.meta.env.MODE === 'development';
-    const delay = isDev ? 800 : 0;
-    
-    const timer = setTimeout(() => {
-      fetch(url)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Server responded with status ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((data: ProductData[]) => {
-          if (cancelled) return;
-          setProducts(data);
-          setIsLoading(false);
-        })
-        .catch((err: Error) => {
-          if (cancelled) return;
-          console.error('Failed to fetch products', err);
-          setError(err.message ?? 'Unknown error');
-          setIsLoading(false);
-        });
-    }, delay);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    try {
+      const response = await fetch(url, { signal });
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+      const data: ProductData[] = await response.json();
+      setProducts(data);
+      setError(null);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') return;
+        console.error('Failed to fetch products', err);
+        setError(err.message ?? 'Unknown error');
+      } else {
+        console.error('An unknown error occurred', err);
+        setError('Unknown error');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }, [search, status, sort, order]);
 
-  return { products, isLoading, error, deleteProduct, addProduct, updateProduct };
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.resolve().then(() => {
+      fetchProducts(controller.signal);
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [fetchProducts]);
+
+  return { products, isLoading, error, fetchProducts, deleteProduct, addProduct, updateProduct };
 };
 
 export default useProducts;
