@@ -45,7 +45,7 @@ const Product: React.FC<ProductProps> = ({ id, name, category, quantity, price, 
       <TableRow hover>
         <TableCell>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar sx={{ width: 40, height: 40 }}>{name.charAt(0)}</Avatar>
+            <Avatar sx={{ width: 40, height: 40, bgcolor: `${statusColor}.main` }}>{name.charAt(0)}</Avatar>
             <Box>
               <Typography variant="subtitle2">{name}</Typography>
             </Box>
