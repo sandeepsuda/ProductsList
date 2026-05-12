@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useDeferredValue } from 'react';
 import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
 import ProductsList from './ProductsList';
 import ProductModal from './ProductModal';
 import useProducts from '../hooks/useProducts';
+import useDebounce from '../hooks/useDebounce';
 
 import {
   Box,
@@ -34,15 +35,20 @@ const AllProductsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   const [sort, order] = sortOption.split('-');
   const apiSort = sort === 'qty' ? 'quantity' : sort;
 
   const { products, isLoading, error, deleteProduct, addProduct, updateProduct } = useProducts({
-    search: searchQuery,
+    search: debouncedSearchQuery,
     status: filterOption,
     sort: apiSort,
     order: order as 'asc' | 'desc'
   });
+
+  const deferredProducts = useDeferredValue(products);
+  const isStale = products !== deferredProducts;
 
   const handleOpenAddModal = () => {
     setSelectedProduct(null);
@@ -148,9 +154,16 @@ const AllProductsPage: React.FC = () => {
           </Stack>
         </Paper>
 
-        <Paper sx={{ p: 1 }} elevation={0}>
+        <Paper 
+          sx={{ 
+            p: 1, 
+            opacity: isStale ? 0.6 : 1,
+            transition: 'opacity 0.2s ease-in-out'
+          }} 
+          elevation={0}
+        >
           <ProductsList 
-            products={products} 
+            products={deferredProducts} 
             isLoading={isLoading} 
             onDelete={deleteProduct}
             onEdit={handleOpenEditModal}

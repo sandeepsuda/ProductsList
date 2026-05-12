@@ -43,7 +43,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
     setPage(newPage);
   };
 
-  if (isLoading && products.length === 0) {
+  if (!isLoading && products.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 6 }}>
         <Inventory2Icon sx={{ fontSize: 56 }} />
