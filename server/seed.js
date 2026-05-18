@@ -1,6 +1,13 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
-const mongoose = require('mongoose');
-const Product = require('./models/Product');
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
+import Product from './models/Product.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const categories = ['Electronics', 'Accessories', 'Audio', 'Home Office', 'Gifts', 'Wearables'];
 const prefixes = ['Pro', 'Ultra', 'Smart', 'Wireless', 'Mini', 'Eco', 'Super', 'Hyper'];

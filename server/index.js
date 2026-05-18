@@ -1,14 +1,21 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const Product = require('./models/Product');
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import express, { json } from 'express';
+import cors from 'cors';
+import { Types, connect } from 'mongoose';
+import Product, { find, findByIdAndDelete, findByIdAndUpdate } from './models/Product.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 // API Routes
 app.get('/api/products', async (req, res) => {
@@ -36,7 +43,7 @@ app.get('/api/products', async (req, res) => {
     }
 
     // 3. Sort & Execute
-    let productQuery = Product.find(query);
+    let productQuery = find(query);
     
     if (sort) {
       const sortOrder = order === 'desc' ? -1 : 1;
@@ -57,11 +64,11 @@ app.delete('/api/products/:id', async (req, res) => {
     const { id } = req.params;
     
     // Validate ObjectId before attempting to delete
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid product ID format' });
     }
 
-    const result = await Product.findByIdAndDelete(id);
+    const result = await findByIdAndDelete(id);
     if (!result) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -78,11 +85,11 @@ app.put('/api/products/:id', async (req, res) => {
     const { id } = req.params;
     const { name, category, quantity, price } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid product ID format' });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
+    const updatedProduct = await findByIdAndUpdate(
       id,
       { name, category, quantity, price },
       { new: true, runValidators: true }
@@ -117,7 +124,7 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-mongoose.connect(process.env.MONGODB_URI)
+connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {

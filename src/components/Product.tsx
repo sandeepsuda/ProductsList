@@ -28,7 +28,7 @@ interface ProductProps {
   onEdit: (id: string) => void;
 }
 
-const Product: React.FC<ProductProps> = ({ id, name, category, quantity, price, onDelete, onEdit }) => {
+const Product: React.FC<ProductProps> = React.memo(({ id, name, category, quantity, price, onDelete, onEdit }) => {
   const { isOpen: showDeleteModal, openModal, closeModal } = useModal();
   
   const status = getStatus(quantity);
@@ -100,6 +100,6 @@ const Product: React.FC<ProductProps> = ({ id, name, category, quantity, price, 
       </ConfirmationModal>
     </>
   );
-};
+});
 
 export default Product;

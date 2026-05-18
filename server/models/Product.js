@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+import { Schema, model } from 'mongoose';
 
-const productSchema = new mongoose.Schema({
+const productSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -31,4 +31,15 @@ const productSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Product', productSchema);
+const ProductModel = model('Product', productSchema);
+
+// Export the model as default
+export default ProductModel;
+
+// Export utility functions (wrappers)
+export const find = (query) => ProductModel.find(query);
+export const findByIdAndDelete = (id) => ProductModel.findByIdAndDelete(id);
+export const findByIdAndUpdate = (id, updates, options) => ProductModel.findByIdAndUpdate(id, updates, options);
+
+// Export the model itself by name for compatibility
+export const Product = ProductModel;
