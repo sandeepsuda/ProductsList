@@ -81,7 +81,7 @@ const AllProductsPage: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            Inventory Overview
+            StockMate
           </Typography>
           <Typography color="text.secondary">Manage your products, pricing, and stock levels.</Typography>
         </Box>
