@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { ProductData } from '../components/AllProductsPage';
+import { authenticatedFetch } from '../api/authenticatedFetch';
+import { logout } from './authSlice';
+import type { AppDispatch } from './index';
 
 interface ProductsState {
   items: ProductData[];
@@ -13,13 +16,39 @@ const initialState: ProductsState = {
   error: null,
 };
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = '/api/products';
+
+const handleUnauthorized = (dispatch: AppDispatch) => {
+  dispatch(logout());
+
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+};
+
+const getErrorMessage = async (response: Response, fallback: string) => {
+  const errorPayload = await response.json().catch(() => null);
+
+  if (
+    errorPayload &&
+    typeof errorPayload === 'object' &&
+    'error' in errorPayload &&
+    typeof errorPayload.error === 'string'
+  ) {
+    return errorPayload.error;
+  }
+
+  return fallback;
+};
 
 // --- Thunks ---
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
-  async (params: { search?: string; status?: string; sort?: string; order?: string } = {}, { signal }) => {
+  async (
+    params: { search?: string; status?: string; sort?: string; order?: string } = {},
+    { signal, dispatch },
+  ) => {
     const queryParams = new URLSearchParams();
     if (params.search) queryParams.append('search', params.search);
     if (params.status && params.status !== 'all') queryParams.append('status', params.status);
@@ -29,9 +58,13 @@ export const fetchProducts = createAsyncThunk(
     const queryString = queryParams.toString();
     const url = queryString ? `${BASE_URL}?${queryString}` : BASE_URL;
 
-    const response = await fetch(url, { signal });
+    const response = await authenticatedFetch(url, {
+      signal,
+      onUnauthorized: () => handleUnauthorized(dispatch as AppDispatch),
+    });
+
     if (!response.ok) {
-      throw new Error(`Server responded with status ${response.status}`);
+      throw new Error(await getErrorMessage(response, `Server responded with status ${response.status}`));
     }
     return (await response.json()) as ProductData[];
   }
@@ -39,35 +72,40 @@ export const fetchProducts = createAsyncThunk(
 
 export const addProduct = createAsyncThunk(
   'products/addProduct',
-  async (newProductData: Omit<ProductData, 'id'>) => {
-    const response = await fetch(BASE_URL, {
+  async (newProductData: Omit<ProductData, 'id'>, { dispatch }) => {
+    const response = await authenticatedFetch(BASE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newProductData),
+      onUnauthorized: () => handleUnauthorized(dispatch as AppDispatch),
     });
-    if (!response.ok) throw new Error('Failed to add product');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to add product'));
     return (await response.json()) as ProductData;
   }
 );
 
 export const updateProduct = createAsyncThunk(
   'products/updateProduct',
-  async ({ id, updatedData }: { id: string; updatedData: Omit<ProductData, 'id'> }) => {
-    const response = await fetch(`${BASE_URL}/${id}`, {
+  async ({ id, updatedData }: { id: string; updatedData: Omit<ProductData, 'id'> }, { dispatch }) => {
+    const response = await authenticatedFetch(`${BASE_URL}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedData),
+      onUnauthorized: () => handleUnauthorized(dispatch as AppDispatch),
     });
-    if (!response.ok) throw new Error('Failed to update product');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to update product'));
     return (await response.json()) as ProductData;
   }
 );
 
 export const deleteProduct = createAsyncThunk(
   'products/deleteProduct',
-  async (id: string) => {
-    const response = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to delete product');
+  async (id: string, { dispatch }) => {
+    const response = await authenticatedFetch(`${BASE_URL}/${id}`, {
+      method: 'DELETE',
+      onUnauthorized: () => handleUnauthorized(dispatch as AppDispatch),
+    });
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to delete product'));
     return id;
   }
 );
