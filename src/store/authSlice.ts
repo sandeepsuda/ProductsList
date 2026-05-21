@@ -47,27 +47,35 @@ const authSlice = createSlice({
       state.isAuthenticated = action.payload.isAuthenticated;
       state.user = action.payload.user;
       state.loading = false;
+      state.error = null;
     },
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
       state.loading = false;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(checkAuthStatus.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.isAuthenticated = action.payload.authenticated;
         state.user = action.payload.user;
         state.loading = false;
+        state.error = null;
       })
-      .addCase(checkAuthStatus.rejected, (state) => {
+      .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isAuthenticated = false;
         state.user = null;
         state.loading = false;
+        state.error =
+         (action.payload as string) ??
+         action.error.message ??
+         'Not authenticated';
       });
   },
 });

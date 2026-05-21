@@ -29,14 +29,15 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { 
+      await fetch('/api/logout', {
         method: 'POST',
         credentials: 'include'
       })
-      dispatch(logoutAction())
-      navigate('/login')
     } catch (error) {
       console.error('Logout failed:', error)
+    } finally {
+      dispatch(logoutAction())
+      navigate('/login')
     }
   }
 

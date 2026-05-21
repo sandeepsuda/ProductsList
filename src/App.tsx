@@ -17,13 +17,21 @@ function App() {
 
   useEffect(() => {
     dispatch(checkAuthStatus());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!loading) {
+      setEmergencyShow(false);
+      return undefined;
+    }
 
     // Emergency timeout: if still loading after 3s, show anyway
     const timer = setTimeout(() => {
       setEmergencyShow(true);
     }, 3000);
+
     return () => clearTimeout(timer);
-  }, [dispatch]);
+  }, [loading]);
 
   const shouldShowLoading = loading && !emergencyShow;
 

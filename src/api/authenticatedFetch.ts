@@ -2,6 +2,8 @@ interface AuthenticatedFetchOptions extends RequestInit {
   onUnauthorized?: () => void | Promise<void>;
 }
 
+let refreshPromise: Promise<Response> | null = null;
+
 export const authenticatedFetch = async (
   input: RequestInfo | URL,
   options: AuthenticatedFetchOptions = {},
@@ -20,11 +22,20 @@ export const authenticatedFetch = async (
     return response;
   }
 
-  const refreshResponse = await fetch('/api/refresh', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
+  const refreshResponse = await (
+    refreshPromise ??
+    (refreshPromise = (async () => {
+      try {
+        return await fetch('/api/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+      } finally {
+        refreshPromise = null;
+      }
+    })())
+  );
 
   if (refreshResponse.ok) {
     response = await executeRequest();

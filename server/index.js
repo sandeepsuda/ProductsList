@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express, { json } from 'express';
@@ -7,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import { Types, connect } from 'mongoose';
 import Product, { find, findByIdAndDelete, findByIdAndUpdate } from './models/Product.js';
+import RefreshTokenState from './models/RefreshTokenState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +31,7 @@ const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_SECRET;
 const AUTH_USERNAME = process.env.AUTH_USERNAME;
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+const AUTH_USER_ID = AUTH_USERNAME;
 
 app.use(cors({
   origin: 'http://localhost:5173', // Vite default port
@@ -73,44 +76,193 @@ const clearAuthCookies = (res) => {
   res.clearCookie('refreshToken', cookieOptions);
 };
 
+const buildAuthIdentity = (username = AUTH_USERNAME) => ({
+  userId: AUTH_USER_ID,
+  username,
+});
+
+const signAccessToken = ({ userId, username }) => jwt.sign(
+  { sub: userId, username },
+  ACCESS_TOKEN_SECRET,
+  { expiresIn: '15m' },
+);
+
+const signRefreshToken = ({ userId, username, jti }) => jwt.sign(
+  { sub: userId, username, jti },
+  REFRESH_TOKEN_SECRET,
+  { expiresIn: '7d' },
+);
+
+const revokeRefreshTokensForUser = async (
+  userId,
+  username,
+  { compromised = false } = {},
+) => {
+  const timestamp = new Date();
+
+  await RefreshTokenState.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        username,
+        currentRefreshTokenJti: null,
+        revokedAt: timestamp,
+        compromisedAt: compromised ? timestamp : null,
+      },
+    },
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+};
+
+const issueAuthTokens = async ({ userId, username }) => {
+  const refreshTokenJti = randomUUID();
+  const rotatedAt = new Date();
+
+  await RefreshTokenState.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        username,
+        currentRefreshTokenJti: refreshTokenJti,
+        revokedAt: null,
+        compromisedAt: null,
+        lastRotatedAt: rotatedAt,
+      },
+    },
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+
+  return {
+    accessToken: signAccessToken({ userId, username }),
+    refreshToken: signRefreshToken({ userId, username, jti: refreshTokenJti }),
+  };
+};
+
+const isExpectedRefreshPayload = (decoded) => (
+  decoded
+  && typeof decoded === 'object'
+  && decoded.sub === AUTH_USER_ID
+  && decoded.username === AUTH_USERNAME
+  && typeof decoded.jti === 'string'
+  && decoded.jti.length > 0
+);
+
 // Auth Routes
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body ?? {};
+  
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
 
   if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
-    const accessToken = jwt.sign({ username }, ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
-    const refreshToken = jwt.sign({ username }, REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
-    
-    setAuthCookies(res, accessToken, refreshToken);
+    try {
+      const { accessToken, refreshToken } = await issueAuthTokens(buildAuthIdentity(username));
 
-    return res.json({ message: 'Login successful', user: { username } });
+      setAuthCookies(res, accessToken, refreshToken);
+
+      return res.json({ message: 'Login successful', user: { username } });
+    } catch (error) {
+      console.error('Auth Server Error:', error.message);
+      return res.status(500).json({ error: 'Failed to create login session' });
+    }
   }
 
   res.status(401).json({ error: 'Invalid username or password' });
 });
 
-app.post('/api/refresh', (req, res) => {
+app.post('/api/refresh', async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
     return res.status(401).json({ error: 'Refresh token missing' });
   }
 
+  let decoded;
+
   try {
-    const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
-    const accessToken = jwt.sign({ username: decoded.username }, ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
-    const newRefreshToken = jwt.sign({ username: decoded.username }, REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+    decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+  } catch {
+    clearAuthCookies(res);
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+
+  if (!isExpectedRefreshPayload(decoded)) {
+    clearAuthCookies(res);
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+
+  try {
+    const nextRefreshTokenJti = randomUUID();
+    const rotatedAt = new Date();
+    // Rotate only if the presented jti is still the currently trusted one.
+    const authState = await RefreshTokenState.findOneAndUpdate(
+      {
+        userId: decoded.sub,
+        username: decoded.username,
+        currentRefreshTokenJti: decoded.jti,
+        revokedAt: null,
+      },
+      {
+        $set: {
+          currentRefreshTokenJti: nextRefreshTokenJti,
+          compromisedAt: null,
+          lastRotatedAt: rotatedAt,
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!authState) {
+      await revokeRefreshTokensForUser(decoded.sub, decoded.username, { compromised: true });
+      clearAuthCookies(res);
+      return res.status(401).json({ error: 'Refresh token replay detected. Please sign in again.' });
+    }
+
+    const accessToken = signAccessToken({ userId: decoded.sub, username: decoded.username });
+    const newRefreshToken = signRefreshToken({
+      userId: decoded.sub,
+      username: decoded.username,
+      jti: nextRefreshTokenJti,
+    });
 
     setAuthCookies(res, accessToken, newRefreshToken);
 
-    res.json({ message: 'Token refreshed' });
+    return res.json({ message: 'Token refreshed' });
   } catch (error) {
-    clearAuthCookies(res);
-    res.status(401).json({ error: 'Invalid refresh token' });
+    console.error('Auth Server Error:', error.message);
+    return res.status(500).json({ error: 'Failed to refresh token' });
   }
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+
+      if (isExpectedRefreshPayload(decoded)) {
+        try {
+          await revokeRefreshTokensForUser(decoded.sub, decoded.username);
+        } catch (error) {
+          console.error('Auth Server Error:', error.message);
+          return res.status(500).json({ error: 'Failed to revoke session' });
+        }
+      }
+    } catch {
+      // Ignore invalid or expired refresh cookies during logout.
+    }
+  }
+
   clearAuthCookies(res);
   res.json({ message: 'Logged out successfully' });
 });
