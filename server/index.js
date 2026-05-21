@@ -1,24 +1,303 @@
 import dotenv from 'dotenv';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express, { json } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 import { Types, connect } from 'mongoose';
 import Product, { find, findByIdAndDelete, findByIdAndUpdate } from './models/Product.js';
+import RefreshTokenState from './models/RefreshTokenState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+const requiredAuthEnvVars = ['JWT_SECRET', 'REFRESH_SECRET', 'AUTH_USERNAME', 'AUTH_PASSWORD'];
+const missingAuthEnvVars = requiredAuthEnvVars.filter((name) => !process.env[name]);
+
+if (missingAuthEnvVars.length > 0) {
+  console.error(
+    `Missing required auth environment variables: ${missingAuthEnvVars.join(', ')}`,
+  );
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_SECRET;
+const AUTH_USERNAME = process.env.AUTH_USERNAME;
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+const AUTH_USER_ID = AUTH_USERNAME;
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173', // Vite default port
+  credentials: true
+}));
 app.use(json());
+app.use(cookieParser());
+
+// Helper to set cookies
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  };
+
+  if (accessToken) {
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+  }
+
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  }
+};
+
+const clearAuthCookies = (res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  };
+
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
+};
+
+const buildAuthIdentity = (username = AUTH_USERNAME) => ({
+  userId: AUTH_USER_ID,
+  username,
+});
+
+const signAccessToken = ({ userId, username }) => jwt.sign(
+  { sub: userId, username },
+  ACCESS_TOKEN_SECRET,
+  { expiresIn: '15m' },
+);
+
+const signRefreshToken = ({ userId, username, jti }) => jwt.sign(
+  { sub: userId, username, jti },
+  REFRESH_TOKEN_SECRET,
+  { expiresIn: '7d' },
+);
+
+const revokeRefreshTokensForUser = async (
+  userId,
+  username,
+  { compromised = false } = {},
+) => {
+  const timestamp = new Date();
+
+  await RefreshTokenState.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        username,
+        currentRefreshTokenJti: null,
+        revokedAt: timestamp,
+        compromisedAt: compromised ? timestamp : null,
+      },
+    },
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+};
+
+const issueAuthTokens = async ({ userId, username }) => {
+  const refreshTokenJti = randomUUID();
+  const rotatedAt = new Date();
+
+  await RefreshTokenState.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        username,
+        currentRefreshTokenJti: refreshTokenJti,
+        revokedAt: null,
+        compromisedAt: null,
+        lastRotatedAt: rotatedAt,
+      },
+    },
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+
+  return {
+    accessToken: signAccessToken({ userId, username }),
+    refreshToken: signRefreshToken({ userId, username, jti: refreshTokenJti }),
+  };
+};
+
+const isExpectedRefreshPayload = (decoded) => (
+  decoded
+  && typeof decoded === 'object'
+  && decoded.sub === AUTH_USER_ID
+  && decoded.username === AUTH_USERNAME
+  && typeof decoded.jti === 'string'
+  && decoded.jti.length > 0
+);
+
+// Auth Routes
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body ?? {};
+  
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+    try {
+      const { accessToken, refreshToken } = await issueAuthTokens(buildAuthIdentity(username));
+
+      setAuthCookies(res, accessToken, refreshToken);
+
+      return res.json({ message: 'Login successful', user: { username } });
+    } catch (error) {
+      console.error('Auth Server Error:', error.message);
+      return res.status(500).json({ error: 'Failed to create login session' });
+    }
+  }
+
+  res.status(401).json({ error: 'Invalid username or password' });
+});
+
+app.post('/api/refresh', async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token missing' });
+  }
+
+  let decoded;
+
+  try {
+    decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+  } catch {
+    clearAuthCookies(res);
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+
+  if (!isExpectedRefreshPayload(decoded)) {
+    clearAuthCookies(res);
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+
+  try {
+    const nextRefreshTokenJti = randomUUID();
+    const rotatedAt = new Date();
+    // Rotate only if the presented jti is still the currently trusted one.
+    const authState = await RefreshTokenState.findOneAndUpdate(
+      {
+        userId: decoded.sub,
+        username: decoded.username,
+        currentRefreshTokenJti: decoded.jti,
+        revokedAt: null,
+      },
+      {
+        $set: {
+          currentRefreshTokenJti: nextRefreshTokenJti,
+          compromisedAt: null,
+          lastRotatedAt: rotatedAt,
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!authState) {
+      await revokeRefreshTokensForUser(decoded.sub, decoded.username, { compromised: true });
+      clearAuthCookies(res);
+      return res.status(401).json({ error: 'Refresh token replay detected. Please sign in again.' });
+    }
+
+    const accessToken = signAccessToken({ userId: decoded.sub, username: decoded.username });
+    const newRefreshToken = signRefreshToken({
+      userId: decoded.sub,
+      username: decoded.username,
+      jti: nextRefreshTokenJti,
+    });
+
+    setAuthCookies(res, accessToken, newRefreshToken);
+
+    return res.json({ message: 'Token refreshed' });
+  } catch (error) {
+    console.error('Auth Server Error:', error.message);
+    return res.status(500).json({ error: 'Failed to refresh token' });
+  }
+});
+
+app.post('/api/logout', async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+
+      if (isExpectedRefreshPayload(decoded)) {
+        try {
+          await revokeRefreshTokensForUser(decoded.sub, decoded.username);
+        } catch (error) {
+          console.error('Auth Server Error:', error.message);
+          return res.status(500).json({ error: 'Failed to revoke session' });
+        }
+      }
+    } catch {
+      // Ignore invalid or expired refresh cookies during logout.
+    }
+  }
+
+  clearAuthCookies(res);
+  res.json({ message: 'Logged out successfully' });
+});
+
+app.get('/api/auth/status', (req, res) => {
+  const accessToken = req.cookies.accessToken;
+  
+  if (!accessToken) {
+    return res.status(401).json({ authenticated: false });
+  }
+
+  try {
+    const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
+    res.json({ authenticated: true, user: { username: decoded.username } });
+  } catch (error) {
+    res.status(401).json({ authenticated: false });
+  }
+});
+
+// Middleware to protect API routes
+const authenticateToken = (req, res, next) => {
+  const accessToken = req.cookies.accessToken;
+  if (!accessToken) return res.status(401).json({ error: 'Access denied' });
+
+  try {
+    const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
 // API Routes
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', authenticateToken, async (req, res) => {
   try {
     const { search, status, sort, order } = req.query;
     
@@ -59,7 +338,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 // Added DELETE route for completeness
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -80,7 +359,7 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-app.put('/api/products/:id', async (req, res) => {
+app.put('/api/products/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, quantity, price } = req.body;
@@ -109,7 +388,7 @@ app.put('/api/products/:id', async (req, res) => {
   }
 });
 
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', authenticateToken, async (req, res) => {
   try {
     const { name, category, quantity, price } = req.body;
     const newProduct = new Product({ name, category, quantity, price });

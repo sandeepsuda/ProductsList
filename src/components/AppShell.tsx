@@ -2,18 +2,20 @@ import React, { forwardRef } from 'react'
 import {
   AppBar,
   Toolbar,
-  IconButton,
   Typography,
   Box,
   Container,
-  Avatar,
+  Button,
 } from '@mui/material'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import type { LinkProps as RouterLinkProps } from 'react-router-dom'
 import {
   Inventory2 as Inventory2Icon,
-  Person as PersonIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material'
+import { useSelector, useDispatch } from 'react-redux'
+import type { RootState } from '../store'
+import { logout as logoutAction } from '../store/authSlice'
 import Footer from './Footer'
 
 const LinkBehavior = forwardRef<HTMLAnchorElement, Omit<RouterLinkProps, 'to'> & { to: string }>(
@@ -21,6 +23,24 @@ const LinkBehavior = forwardRef<HTMLAnchorElement, Omit<RouterLinkProps, 'to'> &
 )
 
 const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      dispatch(logoutAction())
+      navigate('/login')
+    }
+  }
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
       <AppBar position="static" color="primary" sx={{ mb: 2 }}>
@@ -29,17 +49,30 @@ const AppShell: React.FC<React.PropsWithChildren> = ({ children }) => {
             <Box component={LinkBehavior} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
               <Inventory2Icon />
               <Typography variant="h6" component="span" sx={{ ml: 1 }}>
-                Products Catalog
+                StockMate
               </Typography>
             </Box>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit" aria-label="open user profile">
-              <Avatar sx={{ width: 32, height: 32 }}>
-                <PersonIcon />
-              </Avatar>
-            </IconButton>
+            {isAuthenticated ? (
+              <>
+                <Typography variant="body2" sx={{ mr: 1 }}>
+                  Hello, {user?.username}
+                </Typography>
+                <Button 
+                  color="inherit" 
+                  onClick={handleLogout}
+                  startIcon={<LogoutIcon />}
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button color="inherit" component={LinkBehavior} to="/login">
+                Login
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </AppBar>

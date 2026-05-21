@@ -16,6 +16,11 @@ Before running the application, you need to set up your environment variables:
     ```bash
     cp server/.env.example server/.env
     ```
+    Required auth variables in `server/.env`:
+    - `JWT_SECRET`
+    - `REFRESH_SECRET`
+    - `AUTH_USERNAME`
+    - `AUTH_PASSWORD`
 
 ## Official Plugins
 
