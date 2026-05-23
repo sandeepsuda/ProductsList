@@ -62,11 +62,11 @@ pipeline {
   
             echo 'Syncing built assets to S3...'
             // --delete removes old files in S3 that no longer exist in your build folder
-            sh 'aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete'
+            sh '/opt/homebrew/bin/aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete'
   
             echo 'Invalidating CloudFront Cache...'
             // Clears CloudFront's cache so your users immediately receive the new code
-            sh 'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"'
+            sh '/opt/homebrew/bin/aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"'
         }
     }
     }
