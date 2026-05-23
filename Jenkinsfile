@@ -5,12 +5,12 @@ pipeline {
         nodejs 'node20'
     }
 
-    environment {
-        // Safe binding of credentials defined in the Jenkins credential store
-        VERCEL_TOKEN      = credentials('VERCEL_TOKEN')
-        VERCEL_ORG_ID     = credentials('VERCEL_ORG_ID')
-        VERCEL_PROJECT_ID = credentials('VERCEL_PROJECT_ID')
-        RENDER_DEPLOY_HOOK = credentials('RENDER_DEPLOY_HOOK')
+    environment {                                                                                                                               
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION    = 'us-east-1'
+        S3_BUCKET_NAME        = 'stockmate-products-frontend'
+        CLOUDFRONT_DIST_ID    = 'EQ65T1SVZCQC3'
     }
 
     stages {
@@ -54,13 +54,20 @@ pipeline {
             }
         }
 
-        stage('Deploy Frontend (Vercel)') {
-            steps {
-                echo 'Deploying to Vercel in production mode...'
-                // Non-interactive build and deployment with automatic promotion to production
-                sh 'npx vercel --token $VERCEL_TOKEN --prod --yes'
-            }
+        stage('Deploy Frontend (AWS S3 + CloudFront)') {
+        steps {
+            echo 'Building frontend static assets...'
+            sh 'npm run build'
+  
+            echo 'Syncing built assets to S3...'
+            // --delete removes old files in S3 that no longer exist in your build folder
+            sh 'aws s3 sync dist/ s3://$S3_BUCKET_NAME --delete'
+  
+            echo 'Invalidating CloudFront Cache...'
+            // Clears CloudFront's cache so your users immediately receive the new code
+            sh 'aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DIST_ID --paths "/*"'
         }
+    }
     }
 
     post {
@@ -68,7 +75,7 @@ pipeline {
             echo 'Pipeline finished execution.'
         }
         success {
-            echo '🎉 All services successfully deployed to Render and Vercel!'
+            echo '🎉 All services successfully deployed to Render and AWS S3 + CloudFront!'
         }
         failure {
             echo '❌ Pipeline execution failed. Please inspect build console output.'
