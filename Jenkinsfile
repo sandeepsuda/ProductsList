@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    
+    tools {
+        nodejs 'node20'
+    }
 
     environment {
         // Safe binding of credentials defined in the Jenkins credential store
