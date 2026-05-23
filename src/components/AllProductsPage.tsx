@@ -18,7 +18,10 @@ import {
   Stack,
   Alert,
   Button,
+  Drawer,
 } from '@mui/material';
+import ProductDetailsDrawer from './ProductDetailsDrawer';
+import ConfirmationModal from './ConfirmationModal';
 
 export interface ProductData {
   id: string;
@@ -34,13 +37,27 @@ const AllProductsPage: React.FC = () => {
   const [filterOption, setFilterOption] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<ProductData | null>(null);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const [sort, order] = sortOption.split('-');
   const apiSort = sort === 'qty' ? 'quantity' : sort;
 
-  const { products, isLoading, error, deleteProduct, addProduct, updateProduct } = useProducts({
+  const { 
+    products, 
+    isLoading, 
+    error, 
+    deleteProduct, 
+    addProduct, 
+    updateProduct,
+    selectedProductDetail,
+    detailsStatus,
+    fetchProductById,
+    clearProductDetail,
+    setProductDetail
+  } = useProducts({
     search: debouncedSearchQuery,
     status: filterOption,
     sort: apiSort,
@@ -67,6 +84,24 @@ const AllProductsPage: React.FC = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
   };
+
+  const handleOpenDetails = useCallback((product: ProductData) => {
+    setProductDetail(product); // immediate optimistic load
+    setIsDrawerOpen(true);
+    fetchProductById(product.id); // background update
+  }, [setProductDetail, fetchProductById]);
+
+  const handleCloseDetails = useCallback(() => {
+    setIsDrawerOpen(false);
+    clearProductDetail();
+  }, [clearProductDetail]);
+
+  const handleConfirmDeleteDrawer = useCallback(async () => {
+    if (productToDelete) {
+      await deleteProduct(productToDelete.id);
+      setProductToDelete(null);
+    }
+  }, [productToDelete, deleteProduct]);
 
   const handleSubmit = async (productData: Omit<ProductData, 'id'>) => {
     if (selectedProduct) {
@@ -167,6 +202,7 @@ const AllProductsPage: React.FC = () => {
             isLoading={isLoading} 
             onDelete={deleteProduct}
             onEdit={handleOpenEditModal}
+            onView={handleOpenDetails}
           />
         </Paper>
       </Stack>
@@ -178,6 +214,52 @@ const AllProductsPage: React.FC = () => {
         onSubmit={handleSubmit}
         product={selectedProduct}
       />
+
+      {/* Product Details side Drawer */}
+      <Drawer
+        anchor="right"
+        open={isDrawerOpen}
+        onClose={handleCloseDetails}
+        PaperProps={{
+          sx: {
+            boxShadow: '-8px 0 30px rgba(0,0,0,0.08)',
+            borderLeft: '1px solid',
+            borderColor: 'divider',
+          }
+        }}
+      >
+        <ProductDetailsDrawer
+          product={selectedProductDetail}
+          onClose={handleCloseDetails}
+          onEdit={(id) => {
+            handleOpenEditModal(id);
+            handleCloseDetails();
+          }}
+          onDelete={(id) => {
+            const product = products.find(p => p.id === id);
+            if (product) {
+              setProductToDelete(product);
+              handleCloseDetails();
+            }
+          }}
+          isLoading={detailsStatus === 'loading'}
+        />
+      </Drawer>
+
+      {/* Drawer Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!productToDelete}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={handleConfirmDeleteDrawer}
+        title="Delete Product"
+        confirmButtonText="Delete Product"
+        variant="danger"
+      >
+        <p>
+          Are you sure you want to delete <strong>"{productToDelete?.name}"</strong>?
+          This action cannot be undone and will permanently remove the item from your inventory.
+        </p>
+      </ConfirmationModal>
     </Box>
   );
 };

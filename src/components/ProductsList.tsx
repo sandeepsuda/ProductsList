@@ -20,11 +20,12 @@ interface ProductsListProps {
   isLoading: boolean;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  onView: (product: ProductData) => void;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDelete, onEdit }) => {
+const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDelete, onEdit, onView }) => {
   const [page, setPage] = useState(0);
 
   const rowsPerPage = ITEMS_PER_PAGE;
@@ -78,6 +79,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, isLoading, onDele
                 price={product.price}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                onView={onView}
               />
             ))}
           </TableBody>

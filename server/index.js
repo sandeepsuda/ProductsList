@@ -337,6 +337,28 @@ app.get('/api/products', authenticateToken, async (req, res) => {
   }
 });
 
+// GET single product by ID
+app.get('/api/products/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId before attempting to query
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error('API Server Error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch product details' });
+  }
+});
+
 // Added DELETE route for completeness
 app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   try {

@@ -2,8 +2,10 @@ import React, { useCallback } from 'react';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 import { getStatus } from '../helpers/productHelpers';
+import type { ProductData } from './AllProductsPage';
 import ConfirmationModal from './ConfirmationModal';
 import { useModal } from '../hooks/useModal';
 import {
@@ -26,9 +28,10 @@ interface ProductProps {
   price: number;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  onView: (product: ProductData) => void;
 }
 
-const Product: React.FC<ProductProps> = React.memo(({ id, name, category, quantity, price, onDelete, onEdit }) => {
+const Product: React.FC<ProductProps> = React.memo(({ id, name, category, quantity, price, onDelete, onEdit, onView }) => {
   const { isOpen: showDeleteModal, openModal, closeModal } = useModal();
   
   const status = getStatus(quantity);
@@ -70,6 +73,22 @@ const Product: React.FC<ProductProps> = React.memo(({ id, name, category, quanti
 
         <TableCell align="right">
           <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Tooltip title="View Details">
+              <IconButton 
+                size="small" 
+                color="primary" 
+                onClick={() => onView({ id, name, category, quantity, price })}
+                sx={{
+                  transition: 'transform 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'scale(1.15)',
+                  }
+                }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
             <Tooltip title="Edit Product">
               <IconButton size="small" onClick={() => onEdit(id)}>
                 <EditIcon fontSize="small" />
